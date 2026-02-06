@@ -1,78 +1,85 @@
-import React, { useState } from 'react';
-import { useParams } from 'react-router-dom';
-import axios from 'axios';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Navbar from '../Navbar'
+import React, { useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import Navbar from "../Navbar";
 
-const ResetPasswordPageEm = ({ history }) => {
-  
+const ResetPasswordPageEm = () => {
   const { id } = useParams();
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const navigate = useNavigate();
+
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
+      toast.error("Passwords do not match");
       return;
     }
 
     try {
-      await axios.post(`http://localhost:3000/employe/forget-link/${id}`, { password });
-      toast.success('Password successfully changed');
-      // Redirect to /student/dashboard after successful password change
-      history.push('/employe/dashboard');
+      setLoading(true);
+
+      await axios.post(
+        `${import.meta.env.VITE_API_URL}/employe/forget-link/${id}`,
+        { password }
+      );
+
+      toast.success("Password successfully changed");
+      navigate("/employe/dashboard");
     } catch (error) {
-      toast.error('Error resetting password');
-      console.error('Error resetting password:', error);
+      toast.error(
+        error?.response?.data?.error || "Error resetting password"
+      );
+      console.error(error);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    
     <div>
-      <Navbar/>
-      <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full">
-        <div className="text-center">
-          <h2 className="mt-6 text-center text-3xl leading-9 font-extrabold text-gray-900">Reset Password</h2>
-        </div>
-        <form className="mt-8" onSubmit={handleSubmit}>
-          <div className="rounded-md shadow-sm">
+      <Navbar />
+
+      <div className="min-h-[80vh] flex items-center justify-center bg-gray-50 px-4">
+        <div className="max-w-md w-full bg-white p-6 rounded-xl shadow-md">
+          <h2 className="text-3xl font-bold text-center mb-6">
+            Reset Password
+          </h2>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
             <input
-              aria-label="Password"
-              name="password"
               type="password"
-              required
+              placeholder="New password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:shadow-outline-blue focus:border-blue-300 focus:z-10 sm:text-sm sm:leading-5"
-              placeholder="Enter new password"
-            />
-            <input
-              aria-label="Confirm Password"
-              name="confirmPassword"
-              type="password"
               required
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            />
+
+            <input
+              type="password"
+              placeholder="Confirm new password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="-mt-px appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:shadow-outline-blue focus:border-blue-300 focus:z-10 sm:text-sm sm:leading-5"
-              placeholder="Confirm new password"
+              required
+              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
             />
-          </div>
-          <div className="mt-6">
+
             <button
               type="submit"
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm leading-5 font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-500 focus:outline-none focus:border-indigo-700 focus:shadow-outline-indigo active:bg-indigo-700 transition duration-150 ease-in-out"
+              disabled={loading}
+              className="w-full bg-indigo-600 text-white py-2 rounded-md hover:bg-indigo-700 transition disabled:opacity-50"
             >
-              Reset Password
+              {loading ? "Resetting..." : "Reset Password"}
             </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
-    </div>
     </div>
   );
 };

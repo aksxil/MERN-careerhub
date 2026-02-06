@@ -1,58 +1,85 @@
-import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { sendForgotPasswordLinkEm } from '../../store/userActions';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import EmNavbar from '../EmNavbar'
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { sendForgotPasswordLinkEm } from "../../store/userActions";
+import { toast } from "react-toastify";
+import EmNavbar from "../EmNavbar";
 
 const ForgotPasswordFormEM = () => {
-  const [email, setEmail] = useState('');
   const dispatch = useDispatch();
-  const isLoading = useSelector(state => state.user.isLoading); // Assuming isLoading is from user slice
-  const error = useSelector(state => state.user.error); // Assuming error is from user slice
+  const { isLoading } = useSelector((state) => state.user);
 
-  const handleChange = e => {
-    setEmail(e.target.value);
-  };
+  const [email, setEmail] = useState("");
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!email) {
+      toast.error("Please enter your email");
+      return;
+    }
+
     try {
       await dispatch(sendForgotPasswordLinkEm(email));
-      toast.success('Forgot password link sent successfully');
-    } catch (error) {
-      toast.error(error.response.data.error);
+      toast.success("Password reset link sent to your email");
+      setEmail("");
+    } catch (err) {
+      toast.error(
+        err?.response?.data?.error ||
+          "Failed to send reset link"
+      );
     }
   };
 
   return (
-    <div>
-      <EmNavbar/>
-      <div className="flex flex-col items-center justify-center min-h-[80vh]">
-      <h2 className="text-2xl font-bold mb-4">Forgot Password</h2>
-      {error && <p className="text-red-500 mb-4">{}</p>}
-      <form onSubmit={handleSubmit} className="w-full max-w-sm">
-        <div className="flex flex-col mb-4">
-          <label htmlFor="email" className="mb-2 font-semibold">Email Address</label>
-          <input
-            type="email"
-            id="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={handleChange}
-            required
-            className="px-4 py-2 border rounded focus:outline-none focus:border-blue-500"
-          />
+    <div className="min-h-screen bg-gray-100">
+      <EmNavbar />
+
+      <div className="flex items-center justify-center min-h-[80vh] px-4">
+        <div className="bg-white w-full max-w-md rounded-xl shadow-lg p-8">
+
+          <h2 className="text-2xl font-bold text-center mb-4">
+            Forgot Password
+          </h2>
+          <p className="text-gray-500 text-center mb-6">
+            Enter your registered email and we’ll send you a reset link
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <input
+              type="email"
+              placeholder="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="input"
+              required
+            />
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-indigo-600 text-white py-3 rounded-lg font-semibold hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {isLoading ? "Sending..." : "Send Reset Link"}
+            </button>
+          </form>
         </div>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`bg-blue-500 text-white font-semibold py-2 px-4 rounded focus:outline-none ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-        >
-          {isLoading ? 'Sending...' : 'Send Forgot Password Link'}
-        </button>
-      </form>
-    </div>
+      </div>
+
+      {/* INPUT STYLE */}
+      <style>
+        {`
+          .input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            outline: none;
+          }
+          .input:focus {
+            border-color: #6366f1;
+          }
+        `}
+      </style>
     </div>
   );
 };

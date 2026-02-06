@@ -1,80 +1,120 @@
-import React, { useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import JobCard from '../JobCard';
-import InternCard from '../InternCard';
-import { asyncloaduser, fetchRandomInternships, fetchRandomJobs } from '../../store/userActions';
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import JobCard from "../JobCard";
+import InternCard from "../InternCard";
+import {
+  fetchRandomInternships,
+  fetchRandomJobs,
+} from "../../store/userActions";
 
 const FilteredJobsAndInternships = () => {
-    const dispatch = useDispatch();
-    const [searchQuery, setSearchQuery] = useState('');
-    const [locationFilter, setLocationFilter] = useState('');
-    const randomJobs = useSelector(state => state.user.randomJobs);
-    const randomInternships = useSelector(state => state.user.randomInternships);
+  const dispatch = useDispatch();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [locationFilter, setLocationFilter] = useState("");
 
-    useEffect(() => {
-        dispatch(asyncloaduser());
-        dispatch(fetchRandomJobs());
-        dispatch(fetchRandomInternships());
-    }, [dispatch]);
+  const { randomJobs, randomInternships } = useSelector(
+    (state) => state.user
+  );
 
-    const filterItems = (items) => {
-        if (!items || !items.data) return [];
-        return items.data.filter(item => {
-            const locationMatches = !locationFilter || locationFilter === '' ||
-                (item.jobtype && item.jobtype.toLowerCase() === locationFilter.toLowerCase()) ||
-                (item.internshiptype && item.internshiptype.toLowerCase() === locationFilter.toLowerCase());
-            const searchMatches = !searchQuery || searchQuery === '' ||
-                (item.title && item.title.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                (item.description && item.description.toLowerCase().includes(searchQuery.toLowerCase()));
-            return locationMatches && searchMatches;
-        });
-    };
+  useEffect(() => {
+    dispatch(fetchRandomJobs());
+    dispatch(fetchRandomInternships());
+  }, [dispatch]);
 
-    const filteredJobs = filterItems(randomJobs);
-    const filteredInternships = filterItems(randomInternships);
+  // ✅ FIXED FILTER FUNCTION
+  const filterItems = (items = []) => {
+    return items.filter((item) => {
+      const locationMatches =
+        !locationFilter ||
+        item.jobtype?.toLowerCase() === locationFilter.toLowerCase() ||
+        item.internshiptype?.toLowerCase() ===
+          locationFilter.toLowerCase();
 
-    if (!randomJobs || !randomInternships) {
-        return <div>Loading...</div>;
-    }
+      const searchMatches =
+        !searchQuery ||
+        item.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        item.profile?.toLowerCase().includes(searchQuery.toLowerCase());
 
-    return (
-        <div>
-            <div className='min-h-[60vh] overflow-hidden w-full bg-sky-100 flex flex-col  items-center p-5'>
-                {/* <h1 className='text-3xl font-semibold'>Recommended for you</h1>
-                <h2 className='mt-1 text-xl'>as per your <span className='text-sky-600 font-semibold'>preferences</span></h2> */}
+      return locationMatches && searchMatches;
+    });
+  };
 
-                {/* Search input */}
-                <input className='p-2 m-3 w-[70vh] rounded-md' type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} placeholder="Search jobs and internships" />
+  const filteredJobs = filterItems(randomJobs);
+  const filteredInternships = filterItems(randomInternships);
 
-                {/* Location filter */}
-                <select
-                    value={locationFilter}
-                    onChange={e => setLocationFilter(e.target.value)}
-                    className="p-2 m-3 rounded-md bg-white shadow-sm focus:ring-sky-500 focus:border-sky-500 sm:text-sm"
-                >
-                    <option value="">All Locations</option>
-                    <option value="remote">Remote</option>
-                    <option value="in office">In Office</option>
-                </select>
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-6">
 
+      {/* FILTER BAR */}
+      <div className="flex flex-col md:flex-row gap-4 items-center justify-between mb-8">
+        <input
+          type="text"
+          placeholder="Search jobs & internships"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full md:w-1/2 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"
+        />
 
-                {/* Display filtered and searched jobs */}
-                <div className='min-h-[60vh] w-full bg-sky-100 flex items-center p-10 gap-10'>
-                    {filteredJobs.map(job => (
-                        <JobCard key={job.id} job={job} />
-                    ))}
-                </div>
-
-                <h2>Filtered Internships</h2>
-                {/* Display filtered and searched internships */}
-                <div className='min-h-[60vh] w-full bg-sky-100 flex items-center p-10 gap-10'>
-                    {filteredInternships.map(internship => (
-                        <InternCard key={internship.id} internship={internship} />
-                    ))}
-                </div>
-            </div>
+        <div className="flex gap-3">
+          {["", "remote", "in office"].map((type) => (
+            <button
+              key={type || "all"}
+              onClick={() => setLocationFilter(type)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition
+                ${
+                  locationFilter === type
+                    ? "bg-indigo-600 text-white"
+                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                }`}
+            >
+              {type === ""
+                ? "All"
+                : type === "remote"
+                ? "Remote"
+                : "In Office"}
+            </button>
+          ))}
         </div>
-    );
+      </div>
+
+      {/* JOBS */}
+      <section>
+        <h2 className="text-2xl font-semibold mb-4">Jobs</h2>
+
+        {filteredJobs.length ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredJobs.map((job) => (
+              <JobCard key={job._id} job={job} />
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-10">
+            No jobs found matching your criteria
+          </p>
+        )}
+      </section>
+
+      {/* INTERNSHIPS */}
+      <section className="mt-14">
+        <h2 className="text-2xl font-semibold mb-4">Internships</h2>
+
+        {filteredInternships.length ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredInternships.map((internship) => (
+              <InternCard
+                key={internship._id}
+                internship={internship}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-10">
+            No internships found matching your criteria
+          </p>
+        )}
+      </section>
+    </div>
+  );
 };
 
 export default FilteredJobsAndInternships;

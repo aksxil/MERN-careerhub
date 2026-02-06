@@ -1,397 +1,240 @@
-const { userInfo } = require("os")
-const { catchAsyncError } = require("../middlewares/catchAsyncError")
-const Student = require("../models/studentModel")
-const Internship = require("../models/internshipModel")
-const Job = require("../models/JobModel")
-const ErrorHandler = require("../utils/ErrorHandler")
-const { sendtoken } = require("../utils/SendToken")
-const { sendmail } = require("../utils/nodemailer")
+const { catchAsyncError } = require("../middlewares/catchAsyncError");
+const Student = require("../models/studentModel");
+const Internship = require("../models/internshipModel");
+const Job = require("../models/JobModel");
+const ErrorHandler = require("../utils/ErrorHandler");
+const { sendtoken } = require("../utils/SendToken");
+const { sendmail } = require("../utils/nodemailer");
 const imagekit = require("../utils/imagekit").initImageKit();
-const path = require("path")
-const Employe = require("../models/employeModel")
-// const Internship = require("../models/internshipModel")
-// const Job = require("../models/JobModel")
+const path = require("path");
 
+// ================= HOME =================
+const homepage = catchAsyncError(async (req, res) => {
+  res.json({ message: "Secure home page" });
+});
 
-exports.homepage = catchAsyncError(async (req, res, next) => {
-  res.json({ message: "Secure home page" })
-})
+// ================= CURRENT USER =================
+const currentUser = catchAsyncError(async (req, res, next) => {
+  if (!req.id) return next(new ErrorHandler("Unauthorized", 401));
+  const student = await Student.findById(req.id);
+  res.json({ student });
+});
 
-exports.currentUser = catchAsyncError(async (req, res, next) => {
-  const student = await Student.findById(req.id).exec();
-  res.json({ student })
-})
-
-
-exports.StudentSignup = catchAsyncError(async (req, res, next) => {
+// ================= SIGNUP =================
+const StudentSignup = catchAsyncError(async (req, res) => {
   const student = await new Student(req.body).save();
-  sendtoken(student, 201, res)
-})
+  sendtoken(student, 201, res);
+});
 
-exports.StudentSignin = catchAsyncError(async (req, res, next) => {
-  const student = await Student.findOne({ email: req.body.email }).select("+password").exec();
-  console.log(student)
-  if (!student) {
-    return next(new ErrorHandler("User not found with this email address", 404, "NotFoundError"));
-  }
+// ================= SIGNIN =================
+const StudentSignin = catchAsyncError(async (req, res, next) => {
+  const student = await Student.findOne({ email: req.body.email }).select("+password");
+
+  if (!student) return next(new ErrorHandler("User not found", 404));
+
   const isMatch = await student.comparepassword(req.body.password);
-  if (!isMatch) {
-    return next(new ErrorHandler("Incorrect email or password", 401, "AuthenticationError"));
-  }
+  if (!isMatch) return next(new ErrorHandler("Invalid credentials", 401));
+
   sendtoken(student, 200, res);
 });
 
-
-exports.StudentSignout = catchAsyncError(async (req, res, next) => {
+// ================= SIGNOUT =================
+const StudentSignout = catchAsyncError(async (req, res) => {
   res.clearCookie("token");
-  res.json({ message: "Successfully signed out" }); // Corrected the message
+  res.json({ message: "Logged out successfully" });
 });
 
+// ================= SEND FORGOT MAIL =================
+const Studentsendmail = catchAsyncError(async (req, res, next) => {
+  const student = await Student.findOne({ email: req.body.email });
+  if (!student) return next(new ErrorHandler("User not found", 404));
 
-exports.Studentsendmail = catchAsyncError(async (req, res, next) => {
-  const student = await Student.findOne({ email: req.body.email }).exec()
+  const url = `${process.env.FRONTEND_URL}/student/forget-link/${student._id}`;
+  await sendmail(req, res, next, url);
 
-  if (!student) {
-    return next(new ErrorHandler("User not found with this email address", 404, "NotFoundError"));
-  };
-
-  const frontendURL = 'http://localhost:5173'; // Set the frontend URL here
-  const url = `${frontendURL}/student/forget-link/${student._id}`;
-  sendmail(req, res, next, url)
   student.resetPasswordToken = "1";
-  await student.save()
-  res.json({ student, url })
-})
+  await student.save();
 
-
-exports.studentforgetlink = catchAsyncError(async (req, res, next) => {
-  const student = await Student.findById(req.params.id).exec();
-
-  if (!student) {
-    return next(new ErrorHandler("User not found with this ID", 404, "NotFoundError"));
-  }
-
-  if (student.resetPasswordToken === "1") {
-    // Use the assignment operator (=) instead of equality operator (==)
-    student.resetPasswordToken = "0";
-    student.password = req.body.password;
-
-    try {
-      await student.save();
-      res.status(200).json({
-        message: "Password successfully changed"
-      });
-    } catch (error) {
-      return next(new ErrorHandler("Error saving password", 500, "InternalServerError"));
-    }
-  } else {
-    return next(new ErrorHandler("Invalid Password Link! Please Try again", 500));
-  }
+  res.json({ success: true });
 });
 
+// ================= RESET PASSWORD (LINK) =================
+const studentforgetlink = catchAsyncError(async (req, res, next) => {
+  const student = await Student.findById(req.params.id);
 
-exports.studentresetPassword = catchAsyncError(async (req, res, next) => {
-  const student = await Student.findById(req.id).exec();
-  student.password = req.body.password
+  if (!student || student.resetPasswordToken !== "1") {
+    return next(new ErrorHandler("Invalid or expired link", 400));
+  }
+
+  student.password = req.body.password;
+  student.resetPasswordToken = "0";
+  await student.save();
+
+  res.json({ message: "Password updated successfully" });
+});
+
+// ================= RESET PASSWORD (LOGGED IN) =================
+const studentresetPassword = catchAsyncError(async (req, res) => {
+  const student = await Student.findById(req.id);
+  student.password = req.body.password;
   await student.save();
   sendtoken(student, 200, res);
 });
 
-exports.studentupdate = catchAsyncError(async (req, res, next) => {
-  await Student.findByIdAndUpdate(req.params.id, req.body).exec();
-  res.status(200).json({
-    success: true,
-    message: "Student updated Successfully!",
-  })
-})
-
-exports.studentavatar = catchAsyncError(async (req, res, next) => {
-  try {
-    const student = await Student.findById(req.id).exec();
-    const file = req.files.avatar;
-
-    if (!file) {
-      return res.status(400).json({ success: false, message: "Avatar file is missing" });
-    }
-    const modifiedFileName = `resumebuilder-${Date.now()}${path.extname(file.name)}`;
-
-    if (student.avatar.fileId !== "") {
-      await imagekit.deleteFile(student.avatar.fileId);
-    }
-
-    const { fileId, url } = await imagekit.upload({
-      file: file.data,
-      fileName: modifiedFileName,
-    });
-
-    student.avatar = {
-      fileId,
-      url,
-    };
-
-    await student.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Profile updated!",
-    });
-  } catch (error) {
-    console.error("Error uploading avatar:", error);
-    res.status(500).json({ success: false, message: "Internal server error" });
-  }
+// ================= UPDATE PROFILE =================
+const studentupdate = catchAsyncError(async (req, res) => {
+  await Student.findByIdAndUpdate(req.params.id, req.body);
+  res.json({ success: true });
 });
 
+// ================= AVATAR =================
+const studentavatar = catchAsyncError(async (req, res, next) => {
+  const student = await Student.findById(req.id);
+  const file = req.files?.avatar;
 
-// exports.studentavatar = catchAsyncError(async (req, res, next) => {
-//   const student = await Student.findById(req.params.id).exec();
+  if (!file) return next(new ErrorHandler("Avatar required", 400));
 
-//   if (!student) {
-//     return next(new ErrorHandler("User not found with this ID", 404, "NotFoundError"));
-//   }
+  const modifiedFileName = `student-${Date.now()}${path.extname(file.name)}`;
 
-//   const file = req.files.avatar;
+  if (student.avatar?.fileId) {
+    await imagekit.deleteFile(student.avatar.fileId);
+  }
 
-//   // Check if the avatar property exists before accessing fileId
-//   if (student.avatar && student.avatar.fileId !== "") {
-//     try {
-//       await imagekit.deleteFile(student.avatar.fileId);
-//     } catch (error) {
-//       return next(new ErrorHandler("Error deleting previous avatar", 500, "InternalServerError"));
-//     }
-//   }
+  const { fileId, url } = await imagekit.upload({
+    file: file.data,
+    fileName: modifiedFileName,
+  });
 
-//   const modifiedFileName = `resumebuilder-${Date.now()}${path.extname(file.name)}`;
-
-//   try {
-//     const { fileId, url } = await imagekit.upload({
-//       file: file.data,
-//       fileName: modifiedFileName
-//     });
-
-//     student.avatar = {
-//       fileId,
-//       url: `/student/avatar/${student._id}`  // Corrected URL construction
-//     };
-
-//     await student.save();
-
-//     res.status(200).json({
-//       success: true,
-//       message: "Profile updated!",
-//     });
-//   } catch (error) {
-//     return next(new ErrorHandler("Error uploading avatar or saving to database", 500, "InternalServerError"));
-//   }
-// });
-
-//--------------apply internship---------------------
-
-exports.applyinternship = catchAsyncError(async (req, res, next) => {
-  const student = await Student.findById(req.id).exec();
-  const internship = await Internship.findById(req.params.internshipid)
-  student.internships.push(internship._id)
-  internship.students.push(student._id)
+  student.avatar = { fileId, url };
   await student.save();
-  await internship.save()
-  res.json({ student })
-})
 
+  res.json({ success: true });
+});
 
-//--------------apply job----------------------------
+// ================= APPLY INTERNSHIP =================
+const applyinternship = catchAsyncError(async (req, res, next) => {
+  const student = await Student.findById(req.id);
+  const internship = await Internship.findById(req.params.internshipid);
 
-exports.applyjob = catchAsyncError(async (req, res, next) => {
-  const student = await Student.findById(req.id).exec();
-  const job = await Job.findById(req.params.jobid)
-  student.jobs.push(job._id)
-  job.students.push(student._id)
+  if (!internship) return next(new ErrorHandler("Internship not found", 404));
+
+  if (!student.internships.includes(internship._id)) {
+    student.internships.push(internship._id);
+    internship.students.push(student._id);
+  }
+
   await student.save();
-  await job.save()
-  res.json({ student })
-})
+  await internship.save();
 
-/////////////////
+  res.json({ success: true });
+});
 
-// Controller function to fetch all internships
-exports.getAllInternships = async (req, res, next) => {
-  try {
-    const internships = await Internship.find().populate('employe');
-    res.status(200).json({ success: true, data: internships });
-  } catch (error) {
-    // Handle error
-    next(error);
+// ================= APPLY JOB =================
+const applyjob = catchAsyncError(async (req, res, next) => {
+  const student = await Student.findById(req.id);
+  const job = await Job.findById(req.params.jobid);
+
+  if (!job) return next(new ErrorHandler("Job not found", 404));
+
+  if (!student.jobs.includes(job._id)) {
+    student.jobs.push(job._id);
+    job.students.push(student._id);
   }
-};
 
-// Controller function to fetch a single internship by ID
-exports.getSingleInternship = async (req, res, next) => {
-  try {
-    const internship = await Internship.findById(req.params.id).populate('employe');
-    if (!internship) {
-      return res.status(404).json({ success: false, message: 'Internship not found' });
-    }
-    res.status(200).json({ success: true, data: internship });
-  } catch (error) {
-    // Handle error
-    next(error);
-  }
-};
+  await student.save();
+  await job.save();
 
-// Controller function to fetch all jobs
-exports.getAllJobs = async (req, res, next) => {
-  try {
-    const jobs = await Job.find().populate('employe');
-    res.status(200).json({ success: true, data: jobs });
-  } catch (error) {
-    // Handle error
-    next(error);
-  }
-};
+  res.json({ success: true });
+});
 
-// Controller function to fetch a single job by ID
-exports.getSingleJob = async (req, res, next) => {
-  try {
-    const job = await Job.findById(req.params.id).populate('employe');
-    if (!job) {
-      return res.status(404).json({ success: false, message: 'Job not found' });
-    }
-    console.log("Hellooo")
-    res.status(200).json({ success: true, data: job });
-  } catch (error) {
-    // Handle error
-    next(error);
-  }
-};
+// ================= GET ALL INTERNSHIPS =================
+const getAllInternships = catchAsyncError(async (req, res) => {
+  const internships = await Internship.find().populate("employe");
+  res.json(internships);
+});
 
+// ================= GET SINGLE INTERNSHIP =================
+const getSingleInternship = catchAsyncError(async (req, res, next) => {
+  const internship = await Internship.findById(req.params.id).populate("employe");
+  if (!internship) return next(new ErrorHandler("Internship not found", 404));
+  res.json(internship);
+});
 
-exports.getMyApplications = async (req, res, next) => {
-  try {
-    // Fetch the student's applied jobs and internships with population
-    const student = await Student.findById(req.id).populate({
-      path: 'jobs',
-      populate: {
-        path: 'employe',
-        model: 'employe', // Correct the model name to match your Employe model
-        select: 'organizationLogo organizationname firstname' // Select the fields you want to populate
-      }
-    }).populate('internships');
-    
-    // Send the populated jobs and internships in the response
-    res.json({
-      jobs: student.jobs,
-      internships: student.internships
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error' });
-  }
-};
+// ================= GET ALL JOBS =================
+const getAllJobs = catchAsyncError(async (req, res) => {
+  const jobs = await Job.find().populate("employe");
+  res.json(jobs);
+});
 
+// ================= GET SINGLE JOB =================
+const getSingleJob = catchAsyncError(async (req, res, next) => {
+  const job = await Job.findById(req.params.id).populate("employe");
+  if (!job) return next(new ErrorHandler("Job not found", 404));
+  res.json(job);
+});
 
-// Controller function to save a job or internship for a student
-// Controller function to save a job or internship for a student
-exports.saveJobInternship = async (req, res) => {
-  try {
-    const { studentId, itemId, itemType } = req.body;
+// ================= MY APPLICATIONS =================
+const getMyApplications = catchAsyncError(async (req, res) => {
+  const student = await Student.findById(req.id)
+    .populate("jobs")
+    .populate("internships");
 
-    // Find the student by ID
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
+  res.json({
+    jobs: student.jobs,
+    internships: student.internships,
+  });
+});
 
-    // Find the job or internship by ID based on the itemType
-    let item;
-    if (itemType === 'job') {
-      item = await Job.findById(itemId);
-    } else if (itemType === 'internship') {
-      item = await Internship.findById(itemId);
-    }
+// ================= SAVE JOB / INTERNSHIP =================
+const saveJobInternship = catchAsyncError(async (req, res) => {
+  const { itemId, itemType } = req.body;
+  const student = await Student.findById(req.id);
 
-    if (!item) {
-      return res.status(404).json({ error: 'Job/Internship not found' });
-    }
+  student.saved.push({ itemId, itemType });
+  await student.save();
 
-    // Add the job/internship ID to the appropriate array in the student model
-    if (itemType === 'job') {
-      student.savedJobs.push(itemId);
-    } else if (itemType === 'internship') {
-      student.savedInternships.push(itemId);
-    }
-    
-    // Save the updated student object
-    await student.save();
+  res.json({ success: true });
+});
 
-    res.status(201).json({ message: 'Job/Internship saved successfully' });
-  } catch (error) {
-    console.error('Error saving job/internship:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
+// ================= GET SAVED ITEMS =================
+const getSavedJobsInternships = catchAsyncError(async (req, res) => {
+  const student = await Student.findById(req.params.studentId);
+  res.json(student.saved);
+});
 
-// Controller function to get saved jobs and internships for a student
-exports.getSavedJobsInternships = async (req, res) => {
-  try {
-    const studentId = req.params.studentId;
+// ================= REMOVE SAVED ITEM =================
+const removeSavedItem = catchAsyncError(async (req, res) => {
+  const { userId, itemId } = req.params;
 
-    // Find the student by ID
-    const student = await Student.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
+  const student = await Student.findById(userId);
+  student.saved = student.saved.filter(
+    (item) => item.itemId.toString() !== itemId
+  );
 
-    // Retrieve the saved jobs for the student
-    const savedJobs = await Job.find({ _id: { $in: student.savedJobs } }).populate("employe");
+  await student.save();
+  res.json({ success: true });
+});
 
-    // Retrieve the saved internships for the student
-    const savedInternships = await Internship.find({ _id: { $in: student.savedInternships } }).populate("employe");
-
-    // Combine and return the saved jobs and internships
-    const savedJobsAndInternships = [...savedJobs, ...savedInternships];
-
-    res.status(200).json(savedJobsAndInternships);
-  } catch (error) {
-    console.error('Error getting saved jobs/internships:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-};
-
-// Controller function to remove a saved job or internship for a student
-exports.removeSavedItem = async (req, res) => {
-  try {
-    const { itemId, itemType, userId } = req.params;
-
-    // Find the student by ID
-    const student = await Student.findById(userId);
-    if (!student) {
-      return res.status(404).json({ error: 'Student not found' });
-    }
-
-    // Determine the array to update based on itemType (job or internship)
-    let savedItemsArray;
-    if (itemType === 'job') {
-      savedItemsArray = student.savedJobs;
-    } else if (itemType === 'internship') {
-      savedItemsArray = student.savedInternships;
-    } else {
-      return res.status(400).json({ error: 'Invalid item type' });
-    }
-
-    // Check if the item to remove exists in the student's saved items
-    const itemIndex = savedItemsArray.indexOf(itemId);
-    if (itemIndex === -1) {
-      return res.status(404).json({ error: 'Item not found in saved items' });
-    }
-
-    // Remove the item from the saved items array
-    savedItemsArray.splice(itemIndex, 1);
-
-    // Save the student's updated document
-    await student.save();
-
-    // Respond with success message
-    return res.status(200).json({ message: 'Saved item removed successfully' });
-  } catch (error) {
-    console.error('Error removing saved item:', error);
-    return res.status(500).json({ error: 'Internal server error' });
-  }
+// ✅ EXPORTS (ONLY HERE)
+module.exports = {
+  homepage,
+  StudentSignup,
+  StudentSignin,
+  StudentSignout,
+  currentUser,
+  Studentsendmail,
+  studentforgetlink,
+  studentresetPassword,
+  studentupdate,
+  studentavatar,
+  applyjob,
+  applyinternship,
+  getAllInternships,
+  getSingleInternship,
+  getAllJobs,
+  getSingleJob,
+  getMyApplications,
+  saveJobInternship,
+  getSavedJobsInternships,
+  removeSavedItem,
 };

@@ -1,8 +1,13 @@
+// src/utils/axios.js
 import axios from "axios";
 
 const instance = axios.create({
-    baseURL: "http://localhost:3000/",
-    withCredentials: true,
+  baseURL: import.meta.env.VITE_API_URL,
+  withCredentials: true,
+  headers: {
+    "Cache-Control": "no-cache",
+    Pragma: "no-cache",
+  },
 });
 
 export default instance;

@@ -1,92 +1,82 @@
 const express = require("express");
-const { homepage,
-    StudentSignup ,
-    StudentSignin,
-    StudentSignout,
-    currentUser,
-    Studentsendmail,
-    studentforgetlink,
-    studentresetPassword,
-    studentupdate,
-    studentavatar,
-    applyjob,
-    applyinternship,
-    getAllInternships,
-    getSingleInternship,
-    getAllJobs,
-    getSingleJob,
-    getMyApplications,
-    saveJobInternship,
-    getSavedJobsInternships,
-    removeSavedItem
-} = require("../controllers/indexController");
-const { isAuthenticated } = require("../middlewares/auth");
 const router = express.Router();
 
-router.get("/",homepage)
+const {
+  homepage,
 
-router.get("/student",isAuthenticated,currentUser)
+  // STUDENT AUTH
+  StudentSignup,
+  StudentSignin,
+  StudentSignout,
+  currentUser,
 
+  // PASSWORD
+  Studentsendmail,
+  studentforgetlink,
+  studentresetPassword,
 
-//post Student
-router.post("/student/signup", StudentSignup)
+  // PROFILE
+  studentupdate,
+  studentavatar,
 
-//post Student
-router.post("/student/signin", StudentSignin)
+  // APPLY
+  applyjob,
+  applyinternship,
 
-//post Student
-router.get("/student/signout",isAuthenticated, StudentSignout)
+  // FETCH
+  getAllInternships,
+  getSingleInternship,
+  getAllJobs,
+  getSingleJob,
 
-//post Student/send mail
-router.post("/student/send-mail", Studentsendmail)
+  // APPLICATIONS
+  getMyApplications,
 
-//get student forget
-router.post("/student/forget-link/:id", studentforgetlink)
+  // SAVE
+  saveJobInternship,
+  getSavedJobsInternships,
+  removeSavedItem,
+} = require("../controllers/indexController");
 
-//resest password
-router.post("/student/reset-password/:id", isAuthenticated, studentresetPassword)
+const { isAuthenticated } = require("../middlewares/auth");
 
-//Student/update
-router.post("/student/update/:id", isAuthenticated, studentupdate)
+// ---------------- HOME ----------------
+router.get("/", homepage);
 
-//Student/avatar
-router.post("/student/avatar/:id", isAuthenticated, studentavatar)
+// ---------------- CURRENT USER ----------------
+router.get("/student", isAuthenticated, currentUser);
 
+// ---------------- AUTH ----------------
+router.post("/student/signup", StudentSignup);
+router.post("/student/signin", StudentSignin);
+router.get("/student/signout", isAuthenticated, StudentSignout);
 
-//----------------------------Apply Internship----------------------------
+// ---------------- PASSWORD ----------------
+router.post("/student/send-mail", Studentsendmail);
+router.post("/student/forget-link/:id", studentforgetlink);
+router.post("/student/reset-password/:id", studentresetPassword);
 
-///student/apply/:internshipid
-router.post("/student/apply/internship/:internshipid", isAuthenticated, applyinternship)
+// ---------------- PROFILE ----------------
+router.post("/student/update/:id", isAuthenticated, studentupdate);
+router.post("/student/avatar/:id", isAuthenticated, studentavatar);
 
-//----------------------------Apply Job----------------------------
+// ---------------- APPLY ----------------
+router.post("/student/apply/internship/:internshipid", isAuthenticated, applyinternship);
+router.post("/student/apply/job/:jobid", isAuthenticated, applyjob);
 
-///student/apply/:jobid
-router.post("/student/apply/job/:jobid", isAuthenticated, applyjob)
+// ---------------- PUBLIC DATA (VERY IMPORTANT FIX) ----------------
+// ❌ removed isAuthenticated here
+router.get("/internships", getAllInternships);
+router.get("/internships/:id", getSingleInternship);
+router.get("/jobs", getAllJobs);
+router.get("/jobs/:id", getSingleJob);
 
-//////////////////////////////
+// ---------------- APPLICATIONS ----------------
+router.post("/myapplications", isAuthenticated, getMyApplications);
 
-// Route for fetching all internships
-router.get('/internships',isAuthenticated, getAllInternships);
+// ---------------- SAVED ----------------
+router.post("/student/save", isAuthenticated, saveJobInternship);
+router.get("/student/:studentId/saved", isAuthenticated, getSavedJobsInternships);
+router.post("/remove/:userId/:itemType/:itemId", isAuthenticated, removeSavedItem);
 
-// Route for fetching a single internship
-router.get('/internships/:id',isAuthenticated, getSingleInternship);
-
-// Route for fetching all jobs
-router.get('/jobs',isAuthenticated, getAllJobs);
-
-// Route for fetching a single job
-router.get('/jobs/:id',isAuthenticated, getSingleJob);
-
-
-router.post('/myapplications', isAuthenticated, getMyApplications)
-
-// Route to save a job or internship for a student
-router.post('/student/save', saveJobInternship);
-
-// Route to get saved jobs and internships for a student
-router.get('/student/:studentId/saved', getSavedJobsInternships);
-
-router.post('/remove/:userId/:itemType/:itemId', removeSavedItem);
-
-
-module.exports = router
+module.exports = router;

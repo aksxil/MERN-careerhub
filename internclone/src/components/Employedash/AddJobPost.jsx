@@ -1,119 +1,190 @@
-import React, { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { useDispatch, useSelector } from 'react-redux';
-import { addJobPost, asyncloademploye } from '../../store/userActions';
+import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { useDispatch } from "react-redux";
+import { addJobPost, asyncloademploye } from "../../store/userActions";
 
 const AddJobPost = ({ onClose }) => {
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     dispatch(asyncloademploye());
   }, [dispatch]);
 
   const [formData, setFormData] = useState({
-    title: '',
-    skills: '',
-    jobtype: 'In office',
+    title: "",
+    skills: "",
+    jobtype: "In office",
     openings: 1,
-    description: '',
-    preferences: '',
-    salary: 0,
-    perks: '', 
-    responsibility: '',
-    stipendStatus: 'Fixed',
-    stipendAmount: 0,
-    assesments: '',
-    location: ''
+    location: "",
+    salary: "",
+    description: "",
+    responsibility: "",
+    preferences: "",
+    perks: "",
+    assesments: "",
   });
 
-  const handleInputChange = (e, fieldName) => {
-    setFormData({ ...formData, [fieldName]: e.target.value });
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await dispatch(addJobPost(formData));
-    onClose();
-    toast.success('Succefully Job Post');
+
+    if (!formData.title || !formData.description || !formData.salary) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await dispatch(addJobPost(formData));
+      toast.success("Job posted successfully");
+      onClose();
+    } catch {
+      toast.error("Failed to post job");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="w-full min-h-screen flex items-center justify-center mt-5">
-      <div className="bg-zinc-100 p-8 rounded-lg shadow-lg w-[75%] relative">
-        <button onClick={onClose} className="absolute top-0 right-0 p-2 text-gray-600 hover:text-gray-900 focus:outline-none">
-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
+    <div className="fixed inset-0 bg-black/40 z-50 flex justify-center items-start overflow-auto py-10">
+      <div className="bg-white w-full max-w-3xl rounded-2xl shadow-lg p-6 relative">
+
+        {/* CLOSE */}
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-black"
+        >
+          ✕
         </button>
-        <h2 className="text-2xl font-bold mb-4">Add New Job</h2>
+
+        <h2 className="text-2xl font-bold mb-6">Post New Job</h2>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block mb-1">Title</label>
-            <input type="text" value={formData.title} onChange={(e) => handleInputChange(e, 'title')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Skills</label>
-            <input type="text" value={formData.skills} onChange={(e) => handleInputChange(e, 'skills')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Job Type</label>
-            <select value={formData.jobtype} onChange={(e) => handleInputChange(e, 'jobtype')} className="w-full p-2 border rounded-md">
-              <option value="In office">In office</option>
-              <option value="Remote">Remote</option>
+
+          {/* BASIC INFO */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <input
+              name="title"
+              placeholder="Job Title *"
+              value={formData.title}
+              onChange={handleChange}
+              className="input"
+            />
+            <input
+              name="skills"
+              placeholder="Required Skills"
+              value={formData.skills}
+              onChange={handleChange}
+              className="input"
+            />
+            <select
+              name="jobtype"
+              value={formData.jobtype}
+              onChange={handleChange}
+              className="input"
+            >
+              <option>In office</option>
+              <option>Remote</option>
             </select>
+            <input
+              name="location"
+              placeholder="Location"
+              value={formData.location}
+              onChange={handleChange}
+              className="input"
+            />
           </div>
-          <div>
-            <label className="block mb-1">Location</label>
-            <input type="number" value={formData.location} onChange={(e) => handleInputChange(e, 'location')} className="w-full p-2 border rounded-md" />
+
+          {/* DETAILS */}
+          <textarea
+            name="description"
+            placeholder="Job Description *"
+            value={formData.description}
+            onChange={handleChange}
+            className="input"
+          />
+
+          <textarea
+            name="responsibility"
+            placeholder="Responsibilities"
+            value={formData.responsibility}
+            onChange={handleChange}
+            className="input"
+          />
+
+          <textarea
+            name="preferences"
+            placeholder="Candidate Preferences"
+            value={formData.preferences}
+            onChange={handleChange}
+            className="input"
+          />
+
+          <div className="grid grid-cols-2 gap-4">
+            <input
+              name="openings"
+              type="number"
+              placeholder="Openings"
+              value={formData.openings}
+              onChange={handleChange}
+              className="input"
+            />
+            <input
+              name="salary"
+              type="number"
+              placeholder="Salary (per month) *"
+              value={formData.salary}
+              onChange={handleChange}
+              className="input"
+            />
           </div>
-          <div>
-            <label className="block mb-1">Openings</label>
-            <input type="number" value={formData.openings} onChange={(e) => handleInputChange(e, 'openings')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Description</label>
-            <textarea value={formData.description} onChange={(e) => handleInputChange(e, 'description')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Preferences</label>
-            <textarea value={formData.preferences} onChange={(e) => handleInputChange(e, 'preferences')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Salary</label>
-            <input type="number" value={formData.salary} onChange={(e) => handleInputChange(e, 'salary')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Perks</label>
-            <textarea value={formData.perks} onChange={(e) => handleInputChange(e, 'perks')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Responsibilities</label>
-            <textarea value={formData.responsibility} onChange={(e) => handleInputChange(e, 'responsibility')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Stipend Status</label>
-            <select value={formData.stipendStatus} onChange={(e) => handleInputChange(e, 'stipendStatus')} className="w-full p-2 border rounded-md">
-              <option value="Fixed">Fixed</option>
-              <option value="Negotiable">Negotiable</option>
-              <option value="Performance Based">Performance Based</option>
-              <option value="Unpaid">Unpaid</option>
-            </select>
-          </div>
-          <div>
-            <label className="block mb-1">Stipend Amount</label>
-            <input type="number" value={formData.stipendAmount} onChange={(e) => handleInputChange(e, 'stipendAmount')} className="w-full p-2 border rounded-md" />
-          </div>
-          <div>
-            <label className="block mb-1">Assessments</label>
-            <textarea value={formData.assesments} onChange={(e) => handleInputChange(e, 'assesments')} className="w-full p-2 border rounded-md" />
-          </div>
-          <button type="submit" className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:border-blue-300">
-            Add Job
+
+          {/* EXTRA */}
+          <textarea
+            name="perks"
+            placeholder="Perks & Benefits"
+            value={formData.perks}
+            onChange={handleChange}
+            className="input"
+          />
+
+          <textarea
+            name="assesments"
+            placeholder="Assessments"
+            value={formData.assesments}
+            onChange={handleChange}
+            className="input"
+          />
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-semibold hover:bg-indigo-700 disabled:opacity-50"
+          >
+            {loading ? "Posting..." : "Post Job"}
           </button>
         </form>
       </div>
+
+      {/* INPUT STYLE */}
+      <style>
+        {`
+          .input {
+            width: 100%;
+            padding: 12px;
+            border-radius: 10px;
+            border: 1px solid #d1d5db;
+            outline: none;
+          }
+          .input:focus {
+            border-color: #6366f1;
+          }
+        `}
+      </style>
     </div>
   );
 };

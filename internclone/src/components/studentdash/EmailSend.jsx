@@ -1,58 +1,89 @@
-import React, { useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { sendForgotPasswordLink } from '../../store/userActions';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Navbar from '../Navbar'
+import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { sendForgotPasswordLink } from "../../store/userActions";
+import { toast } from "react-toastify";
+import Navbar from "../Navbar";
 
 const ForgotPasswordForm = () => {
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
   const dispatch = useDispatch();
-  const isLoading = useSelector(state => state.user.isLoading); // Assuming isLoading is from user slice
-  const error = useSelector(state => state.user.error); // Assuming error is from user slice
 
-  const handleChange = e => {
-    setEmail(e.target.value);
-  };
+  const { isLoading, error } = useSelector((state) => state.user);
 
-  const handleSubmit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     try {
       await dispatch(sendForgotPasswordLink(email));
-      toast.success('Forgot password link sent successfully');
-    } catch (error) {
-      toast.error(error.response.data.error);
+      toast.success("Password reset link sent to your email");
+      setEmail("");
+    } catch {
+      toast.error("Something went wrong. Please try again.");
     }
   };
 
   return (
-    <div>
-      <Navbar/>
-      <div className="flex flex-col items-center justify-center min-h-[80vh]">
-      <h2 className="text-2xl font-bold mb-4">Forgot Password</h2>
-      {error && <p className="text-red-500 mb-4">{}</p>}
-      <form onSubmit={handleSubmit} className="w-full max-w-sm">
-        <div className="flex flex-col mb-4">
-          <label htmlFor="email" className="mb-2 font-semibold">Email Address</label>
-          <input
-            type="email"
-            id="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={handleChange}
-            required
-            className="px-4 py-2 border rounded focus:outline-none focus:border-blue-500"
-          />
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
+
+      <div className="flex items-center justify-center min-h-[80vh] px-4">
+        <div className="bg-white rounded-2xl shadow-lg w-full max-w-md p-8">
+
+          {/* HEADER */}
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-800">
+              Forgot Password
+            </h2>
+            <p className="text-gray-500 mt-2">
+              Enter your registered email to receive a reset link
+            </p>
+          </div>
+
+          {/* ERROR */}
+          {error && (
+            <p className="text-red-500 text-sm mb-4 text-center">
+              {error}
+            </p>
+          )}
+
+          {/* FORM */}
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Email address
+              </label>
+              <input
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isLoading}
+              className={`w-full py-3 rounded-xl font-semibold text-white transition
+                ${
+                  isLoading
+                    ? "bg-indigo-300 cursor-not-allowed"
+                    : "bg-indigo-600 hover:bg-indigo-700"
+                }`}
+            >
+              {isLoading ? "Sending link..." : "Send Reset Link"}
+            </button>
+          </form>
+
+          {/* FOOTER */}
+          <p className="text-sm text-gray-500 text-center mt-6">
+            Remembered your password?{" "}
+            <span className="text-indigo-600 font-medium cursor-pointer">
+              Go back to login
+            </span>
+          </p>
         </div>
-        <button
-          type="submit"
-          disabled={isLoading}
-          className={`bg-blue-500 text-white font-semibold py-2 px-4 rounded focus:outline-none ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700'}`}
-        >
-          {isLoading ? 'Sending...' : 'Send Forgot Password Link'}
-        </button>
-      </form>
-    </div>
+      </div>
     </div>
   );
 };

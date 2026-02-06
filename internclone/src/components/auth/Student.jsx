@@ -1,67 +1,117 @@
-import React, { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { asyncloaduser, fetchRandomJobs, fetchRandomInternships } from '../../store/userActions';
-import Navbar from '../Navbar';
-import JobCard from '../JobCard';
-import InternCard from '../InternCard';
-import FilteredJobsAndInternships from '../studentdash/Filtered';
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  asyncloaduser,
+  fetchRandomJobs,
+  fetchRandomInternships,
+} from "../../store/userActions";
+
+import Navbar from "../Navbar";
+import JobCard from "../JobCard";
+import InternCard from "../InternCard";
+import FilteredJobsAndInternships from "../studentdash/Filtered";
 
 const Student = () => {
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
-  const randomJobs = useSelector(state => state.user.randomJobs.data);
-  const randomInternships = useSelector(state => state.user.randomInternships.data);
 
+  const {
+    isAuthenticated,
+    user,
+    randomJobs,
+    randomInternships,
+  } = useSelector((state) => state.user);
+
+  // 1️⃣ Load user ONCE
   useEffect(() => {
-    // Fetch user details and random jobs/internships when the component mounts
     dispatch(asyncloaduser());
-    if (!randomJobs) {
-      dispatch(fetchRandomJobs());
+  }, [dispatch]);
+
+  // 2️⃣ Fetch jobs & internships ONLY after login
+  useEffect(() => {
+    if (isAuthenticated) {
+      if (!randomJobs.length) {
+        dispatch(fetchRandomJobs());
+      }
+      if (!randomInternships.length) {
+        dispatch(fetchRandomInternships());
+      }
     }
-    if (!randomInternships) {
-      dispatch(fetchRandomInternships());
-    }
-  }, [dispatch, randomJobs, randomInternships]);
+  }, [dispatch, isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return (
+      <>
+        <Navbar />
+        <div className="h-[80vh] flex items-center justify-center">
+          <h2 className="text-xl font-semibold text-gray-600">
+            Please log in to view your dashboard
+          </h2>
+        </div>
+      </>
+    );
+  }
 
   return (
-    <div>
+    <div className="bg-gray-50 min-h-screen">
       <Navbar />
-      
-      
-      <div>
-        {user.isAuthenticated ? (
-          <div className='w-full h-[86vh] '>
-            {user.user ? (
-              <div className="div w-full min-h-40 py-8  text-center">
-                <h2 className='text-[7vh] font-semibold'>Hi, {user.user.firstname}!👋</h2>
-                <p className='text-lg'>Let’s help you land your dream career</p>
-              </div>
-            ) : (
-              <p>Loading user details...</p>
-            )}
-            <div className='min-h-[60vh] w-full bg-sky-100 flex flex-col items-center p-5'>
-               <FilteredJobsAndInternships/>
-              <h1 className='text-3xl font-semibold'>Recommended for you</h1>
-              <h2 className='mt-1 text-xl'>as per your <span className='text-sky-600 font-semibold'>preferences</span></h2>
-              <div className='min-h-[60vh] w-full bg-sky-100 flex items-center p-10 gap-10'>
-                {randomJobs && randomJobs.map(job => (
-                  <JobCard key={job.id} job={job} />
-                ))}
-              </div>
 
-              <h2>Random Internships</h2>
-              <div className='min-h-[60vh] w-full bg-sky-100 flex items-center p-10 gap-10'>
-                {randomInternships && randomInternships.map((internship, index) => (
-                  <InternCard key={internship.id} internship={internship}/>
-                ))}
-              </div>
-            </div>
+      {/* WELCOME */}
+      <section className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-14">
+        <div className="max-w-7xl mx-auto px-6 text-center">
+          <h1 className="text-4xl font-bold">
+            Hi, {user?.firstname} 👋
+          </h1>
+          <p className="mt-2 text-lg opacity-90">
+            Let’s help you land your dream career
+          </p>
+        </div>
+      </section>
 
-          </div>
+       {/* FILTER */}
+      <section className="max-w-7xl mx-auto px-6 mt-8">
+        <FilteredJobsAndInternships />
+      </section> 
+
+      {/* JOBS */}
+      <section className="max-w-7xl mx-auto px-6 mt-12">
+        <h2 className="text-3xl font-semibold text-center">
+          Recommended Jobs
+        </h2>
+
+        {randomJobs.length === 0 ? (
+          <p className="text-center text-gray-500 mt-8">
+            No jobs available right now
+          </p>
         ) : (
-          <h2>Please log in to see your details.</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
+            {randomJobs.map((job) => (
+              <JobCard key={job._id} job={job} />
+            ))}
+          </div>
         )}
-      </div>
+      </section>
+
+      {/* INTERNSHIPS */}
+      <section className="max-w-7xl mx-auto px-6 mt-16 pb-16">
+        <h2 className="text-3xl font-semibold text-center">
+          Trending Internships
+        </h2>
+
+        {randomInternships.length === 0 ? (
+          <p className="text-center text-gray-500 mt-8">
+            No internships available right now
+          </p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-10">
+            {randomInternships.map((internship) => (
+              <InternCard
+                key={internship._id}
+                internship={internship}
+              />
+            ))}
+          </div>
+        )}
+      </section>
     </div>
   );
 };

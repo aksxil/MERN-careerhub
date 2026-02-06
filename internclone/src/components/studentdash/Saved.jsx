@@ -1,91 +1,194 @@
-import React, { useEffect, useId } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { fetchSavedJobsAndInternships, removeSavedItemAsync } from '../../store/userActions';
-import Navbar from '../Navbar'
-import { Link } from 'react-router-dom';
+import React, { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import {
+  fetchSavedJobsAndInternships,
+  removeSavedItemAsync,
+} from "../../store/userActions";
+import Navbar from "../Navbar";
+import { Link } from "react-router-dom";
 
 const SavedItemsPage = () => {
-  Link
   const dispatch = useDispatch();
-  const { savedJobs, savedInternships, loading, error } = useSelector(state => state.user);
-  const userId = useSelector(state => state.user?.user?._id);
+  const { savedJobs, savedInternships, loading, error, user } =
+    useSelector((state) => state.user);
+
+  const userId = user?._id;
 
   useEffect(() => {
-    console.log("userId:", userId); // Log userId to check its value
     if (userId) {
       dispatch(fetchSavedJobsAndInternships(userId));
     }
-  }, [dispatch, userId]); // Ensure userId is in the dependency array
-  
+  }, [dispatch, userId]);
 
-  const handleRemoveSavedItem = (itemType, itemId) => {
-    dispatch(removeSavedItemAsync(userId, itemType, itemId));
-    toast.success('Successfully Removed');
+  const handleRemove = (type, id) => {
+    dispatch(removeSavedItemAsync(userId, type, id));
+    toast.success("Removed from saved");
   };
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <>
+        <Navbar />
+        <div className="h-[70vh] flex items-center justify-center">
+          <p className="text-gray-500">Loading saved items...</p>
+        </div>
+      </>
+    );
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return <p className="text-center text-red-500">{error}</p>;
   }
 
   return (
-    <div className='min-h-screen  pb-10'>
-      <Navbar/>
-      <h2 className='text-center text-3xl m-10 font-semibold bg-sky-100'>Saved Jobs</h2>
-      <ul className='flex items-center justify-center'>
-        {savedJobs.map(job => (
-          <div className="job-card min-h-[52vh] w-[48vh] bg-white rounded-lg p-3">
-          <h1 className='border flex items-center gap-2 font-semibold text-slate-400'><span className='text-xl text-sky-500 '><i className="ri-funds-line"></i></span> Actively hiring</h1>
-          <div className="job-details mt-2 flex items-center border-b pb-4">
-          <div>
-          <h1 className='text-[16px] font-semibold'>{job.title}</h1>
-           <h2 className='text-[14px]'>{job.employe.organizationname}</h2>
-          </div>
-          <img className='h-20' src={job.employe.organizationLogo.url} alt="" />
-          </div>
-          <h3 className='mt-1 text-sm'><i className="ri-map-pin-2-line"></i> Work From {job.jobtype}</h3>
-          <h3 className='mt-1 text-sm'><i className="ri-map-pin-2-line"></i> Location: {job.location}</h3>
-          <h5 className='mt-1 text-sm'><i className="ri-money-rupee-circle-line"></i> {job.salary}/month</h5>
-          <div className='flex w-full justify-between items-center mt-[40px]'>
-            <h5 className='bg-slate-200 px-2 text-sm'>Job</h5>
-          <button className='text-sky-500 font-semibold' ><Link to={`/jobs/${job._id}`} className='view-details-link'>View Details <i className="ri-arrow-right-s-line"></i></Link></button>
-          </div>
-          <button className="remove-btn bg-slate-400 p-1 mt-2 text-white rounded-md" onClick={() => handleRemoveSavedItem('job', job._id)}>Remove</button>
-        </div>
-        ))}
-      </ul>
+    <div className="min-h-screen bg-gray-50">
+      <Navbar />
 
-      <h2 className='text-center text-3xl m-10 font-semibold bg-sky-100'>Saved Internships</h2>
-      <ul className='flex items-center justify-center gap-10'>
-        {savedInternships.map(internship => (
-          <div className="job-card min-h-[52vh] w-[48vh] bg-white rounded-lg p-3">
-          <h1 className='border flex items-center gap-2 font-semibold text-slate-400'><span className='text-xl text-sky-500 '><i className="ri-funds-line"></i></span> Actively hiring</h1>
-          <div className="job-details mt-2 flex items-center border-b pb-4">
-          <div>
-          <h1 className='text-[16px] font-semibold'>{internship.title}</h1>
-           <h2 className='text-[14px]'>{internship.employe.organizationname}</h2>
-          </div>
-          <img className='h-20' src={internship.employe.organizationLogo.url} alt="" />
-          </div>
-          <h3 className='mt-1 text-sm'><i className="ri-map-pin-2-line"></i> Work From {internship.internshiptype}</h3>
-          <h3 className='mt-1 text-sm'><i className="ri-map-pin-2-line"></i> Location: {internship.location}</h3>
-          <h5 className='mt-1 text-sm'><i className="ri-money-rupee-circle-line"></i> {internship.salary}/month</h5>
-          <div className='flex w-full justify-between items-center mt-[40px]'>
-            <h5 className='bg-slate-200 px-2 text-sm'>internship</h5>
-          <button className='text-sky-500 font-semibold'><Link to={`/internships/${internship._id}`} className='view-details-link'>View Details <i className="ri-arrow-right-s-line"></i></Link></button>
-         
-         
-          
-          </div>
-          <button className="remove-btn bg-slate-400 p-1 mt-2  text-white rounded-md" onClick={() => handleRemoveSavedItem('internship', internship._id, userId)}>Remove</button>
-        </div>
-        ))}
-      </ul>
+      <div className="max-w-7xl mx-auto px-6 py-10">
+
+        {/* SAVED JOBS */}
+        <section>
+          <h2 className="text-3xl font-semibold mb-8">
+            Saved Jobs
+          </h2>
+
+          {savedJobs.length === 0 ? (
+            <p className="text-gray-500">
+              You haven’t saved any jobs yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {savedJobs.map((job) => (
+                <div
+                  key={job._id}
+                  className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-lg transition border"
+                >
+                  <div className="flex justify-between items-start pb-4 border-b">
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {job.title}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {job.employe?.organizationname}
+                      </p>
+                    </div>
+
+                    <img
+                      src={job.employe?.organizationLogo?.url}
+                      alt="logo"
+                      className="h-12 w-12 object-contain"
+                    />
+                  </div>
+
+                  <div className="mt-4 space-y-2 text-sm text-gray-600">
+                    <p>
+                      <i className="ri-briefcase-line text-indigo-500"></i>{" "}
+                      {job.jobtype}
+                    </p>
+                    <p>
+                      <i className="ri-map-pin-line text-indigo-500"></i>{" "}
+                      {job.location}
+                    </p>
+                    <p>
+                      <i className="ri-money-rupee-circle-line text-indigo-500"></i>{" "}
+                      ₹{job.salary}/month
+                    </p>
+                  </div>
+
+                  <div className="mt-6 flex items-center justify-between">
+                    <Link
+                      to={`/jobs/${job._id}`}
+                      className="text-indigo-600 font-semibold text-sm"
+                    >
+                      View Details →
+                    </Link>
+
+                    <button
+                      onClick={() => handleRemove("job", job._id)}
+                      className="text-red-500 text-sm hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+
+        {/* SAVED INTERNSHIPS */}
+        <section className="mt-16">
+          <h2 className="text-3xl font-semibold mb-8">
+            Saved Internships
+          </h2>
+
+          {savedInternships.length === 0 ? (
+            <p className="text-gray-500">
+              You haven’t saved any internships yet.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {savedInternships.map((internship) => (
+                <div
+                  key={internship._id}
+                  className="bg-white rounded-2xl p-5 shadow-sm hover:shadow-lg transition border"
+                >
+                  <div className="flex justify-between items-start pb-4 border-b">
+                    <div>
+                      <h3 className="text-lg font-semibold">
+                        {internship.profile}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        {internship.employe?.organizationname}
+                      </p>
+                    </div>
+
+                    <img
+                      src={internship.employe?.organizationLogo?.url}
+                      alt="logo"
+                      className="h-12 w-12 object-contain"
+                    />
+                  </div>
+
+                  <div className="mt-4 space-y-2 text-sm text-gray-600">
+                    <p>
+                      <i className="ri-briefcase-line text-indigo-500"></i>{" "}
+                      {internship.internshiptype}
+                    </p>
+                    <p>
+                      <i className="ri-map-pin-line text-indigo-500"></i>{" "}
+                      {internship.location}
+                    </p>
+                    <p>
+                      <i className="ri-money-rupee-circle-line text-indigo-500"></i>{" "}
+                      ₹{internship.stipend?.amount}/month
+                    </p>
+                  </div>
+
+                  <div className="mt-6 flex items-center justify-between">
+                    <Link
+                      to={`/internships/${internship._id}`}
+                      className="text-indigo-600 font-semibold text-sm"
+                    >
+                      View Details →
+                    </Link>
+
+                    <button
+                      onClick={() =>
+                        handleRemove("internship", internship._id)
+                      }
+                      className="text-red-500 text-sm hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   );
 };

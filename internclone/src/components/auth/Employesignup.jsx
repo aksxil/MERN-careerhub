@@ -1,113 +1,153 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
 import { Link, useNavigate } from "react-router-dom";
-import Navbar from '../Navbar'
+import { toast } from "react-toastify";
+import Navbar from "../Navbar";
 import { asyncempsignup } from "../../store/userActions";
 
 const Employesignup = () => {
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
   const navigate = useNavigate();
-  const [error, setError] = useState(user.error);
+
+  const { isAuthenticated, isLoading } = useSelector(
+    (state) => state.user
+  );
+
+  const [formData, setFormData] = useState({
+    firstname: "",
+    lastname: "",
+    organizationname: "",
+    contact: "",
+    email: "",
+    password: "",
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const submitHandler = async (e) => {
     e.preventDefault();
-    dispatch(
-      await asyncempsignup({
-        firstname: e.target[0].value,
-        lastname: e.target[1].value,
-        organizationname: e.target[2].value, // New field for organization name
-        contact: e.target[3].value,
-        email: e.target[4].value,
-        password: e.target[5].value,
-      })
-    );
-    toast.success('Employe Successfully Signup');
+
+    const res = await dispatch(asyncempsignup(formData));
+
+    if (res?.error) {
+      toast.error(res.error.message || "Signup failed");
+    } else {
+      toast.success("Employer account created successfully");
+    }
   };
 
   useEffect(() => {
-    if (user.isAuthenticated) {
+    if (isAuthenticated) {
       navigate("/employe/dashboard");
     }
-  }, [user.isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate]);
 
   return (
-    <div className='w-full h-screen bg-slate-50'>
+    <div className="min-h-screen bg-slate-50">
       <Navbar />
-      <div className='w-full h-[90vh]  flex bg-[url(https://internshala.com/static/images/registration/employer/registration_new/images/banner/r767_banner.png)] bg-contain bg-no-repeat   bg-left'>
-        <div className="left w-full h-[87vh] px-32 py-10 ">
-          <h1 className='font-bold text-[7vh] tracking-tight '>Hire Interns & Freshers <span className='text-blue-500 font-extrabold'>Faster</span></h1>
-          <h3 className='text-2xl'>Post Internships for Free Now</h3>
 
-          <form
-            className="form flex flex-col gap-4 w-[80vh] absolute right-[3%] top-[24%]"
-            onSubmit={(e) => submitHandler(e)}
-          >
-            <h2 className="text-2xl font-bold mb-4">Create Account</h2>
-            <div className="flex items-center gap-2">
+      <div className="flex justify-center items-center px-4 py-10">
+        <div className="bg-white w-full max-w-lg rounded-2xl shadow-lg p-8">
+
+          <h2 className="text-2xl font-bold mb-6 text-center">
+            Employer Sign Up
+          </h2>
+
+          <form className="flex flex-col gap-4" onSubmit={submitHandler}>
+            <div className="flex gap-2">
               <input
-                className="form__input bg-gray-200 py-2 px-4 rounded-md"
                 name="firstname"
-                type="text"
                 placeholder="First Name"
+                value={formData.firstname}
+                onChange={handleChange}
                 required
+                className="input"
               />
               <input
-                className="form__input bg-gray-200 py-2 px-4 rounded-md"
                 name="lastname"
-                type="text"
                 placeholder="Last Name"
+                value={formData.lastname}
+                onChange={handleChange}
                 required
+                className="input"
               />
             </div>
+
             <input
-                className="form__input bg-gray-200 py-2 px-4 rounded-md"
-                name="organizationname"
-                type="text"
-                placeholder="Organization Name"
-                required
-              />
+              name="organizationname"
+              placeholder="Organization Name"
+              value={formData.organizationname}
+              onChange={handleChange}
+              required
+              className="input"
+            />
+
             <input
-              className="form__input bg-gray-200 py-2 px-4 rounded-md"
               name="contact"
-              type="tel"  // Use the tel type for contact numbers
               placeholder="Contact"
+              value={formData.contact}
+              onChange={handleChange}
               required
+              className="input"
             />
+
             <input
-              className="form__input bg-gray-200 py-2 px-4 rounded-md"
               name="email"
-              type="text"
+              type="email"
               placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
               required
+              className="input"
             />
+
             <input
-              className="form__input bg-gray-200 py-2 px-4 rounded-md"
               name="password"
               type="password"
               placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
               required
+              className="input"
             />
+
             <button
-              id="button_h"
               type="submit"
-              className="form__button button submit bg-blue-500 text-white py-2 px-4 rounded-md"
+              disabled={isLoading}
+              className="bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
             >
-              SIGN UP
+              {isLoading ? "Creating..." : "Create Account"}
             </button>
-            <span className="text-gray-600">
+
+            <p className="text-sm text-center text-gray-600">
               Already have an account?{" "}
-              <Link className="thicklink text-blue-500" to="/employe/signin">
+              <Link to="/employe/signin" className="text-indigo-600 font-medium">
                 Sign In
               </Link>
-            </span>
+            </p>
           </form>
         </div>
       </div>
+
+      {/* INPUT STYLES */}
+      <style>
+        {`
+          .input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            outline: none;
+          }
+          .input:focus {
+            border-color: #6366f1;
+          }
+        `}
+      </style>
     </div>
   );
-}
+};
 
 export default Employesignup;

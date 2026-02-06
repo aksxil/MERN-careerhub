@@ -2,117 +2,116 @@ import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Link, useNavigate } from "react-router-dom";
 import { asyncsignin } from "../../store/userActions";
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import Navbar from "../Navbar"
+import { toast } from "react-toastify";
+import Navbar from "../Navbar";
 
 const Signin = () => {
-  
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
   const navigate = useNavigate();
-  const [error, setError] = useState(user.error);
-  const [flag, setFlag] = useState(0);
 
-  // const submitHandler = async (e) => {
-  //   e.preventDefault();
-  //   dispatch(
-  //     await asyncsignin({
-  //       email: e.target[0].value,
-  //       password: e.target[1].value,
-  //     })
-  //   );
-  //   setError(user.error);
-  //   setFlag(1);
-  // };
+  const { isAuthenticated, loading, error } = useSelector(
+    (state) => state.user
+  );
 
+  const [formData, setFormData] = useState({
+    email: "",
+    password: "",
+  });
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
   const submitHandler = async (e) => {
     e.preventDefault();
-    await dispatch(asyncsignin({
-      email: e.target[0].value,
-      password: e.target[1].value,
-    }));
-    setError(user.error);
-    setFlag(1);
-    toast.success('Student Successfully Signin');
-    
+    dispatch(asyncsignin(formData));
   };
-  
 
+  // ✅ REDIRECT AFTER LOGIN
   useEffect(() => {
-    if (user.isAuthenticated) {
+    if (isAuthenticated) {
+      toast.success("Login successful");
       navigate("/student/dashboard");
     }
-  }, [user.isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate]);
 
+  // ❌ ERROR HANDLING
   useEffect(() => {
-    if (flag) {
-      console.log(user.error);
-      console.log(user)
-      if (user.error !== "can not access the resource") {
-        toast.error(user.error, {
-          position: "top-right",
-          autoClose: 5000,
-          hideProgressBar: false,
-          closeOnClick: true,
-          pauseOnHover: true,
-          draggable: true,
-          progress: undefined,
-          theme: "dark",
-        });
-      }
+    if (error) {
+      toast.error(error);
     }
-  }, [user.error, flag]);
+  }, [error]);
 
   return (
-    <div className="mainauthcont flex flex-col items-center h-screen bg-gray-100">
-      <Navbar/>
-      <div id="formparent" className="bg-white p-8 w-1/3 rounded-lg shadow-md mt-10">
-        <div className="crossauth text-gray-600" onClick={() => navigate("/")}>
-          <i className="ri-add-fill"></i>
+    <div className="min-h-screen bg-gray-100">
+      <Navbar />
+
+      <div className="flex justify-center items-center px-4 py-12">
+        <div className="bg-white w-full max-w-md rounded-2xl shadow-lg p-8">
+
+          <h2 className="text-2xl font-bold mb-6 text-center">
+            Student Login
+          </h2>
+
+          <form onSubmit={submitHandler} className="flex flex-col gap-4">
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              value={formData.email}
+              onChange={handleChange}
+              required
+              className="input"
+            />
+
+            <input
+              name="password"
+              type="password"
+              placeholder="Password"
+              value={formData.password}
+              onChange={handleChange}
+              required
+              className="input"
+            />
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+            >
+              {loading ? "Logging in..." : "Login"}
+            </button>
+
+            <p className="text-sm text-center text-gray-600">
+              Don’t have an account?{" "}
+              <Link to="/signup" className="text-indigo-600 font-medium">
+                Sign Up
+              </Link>
+            </p>
+
+            <p className="text-sm text-center">
+              <Link to="/send-mail" className="text-indigo-600 font-medium">
+                Forgot Password?
+              </Link>
+            </p>
+          </form>
         </div>
-        <form
-          className="form flex flex-col gap-4"
-          id="a-form"
-          onSubmit={(e) => submitHandler(e)}
-        >
-          <h2 className="text-2xl font-bold mb-4">Student Login</h2>
-          <input
-            className="form__input bg-gray-200 py-2 px-4 rounded-md"
-            name="email"
-            type="text"
-            placeholder="Email"
-            required
-          />
-          <input
-            className="form__input bg-gray-200 py-2 px-4 rounded-md"
-            name="password"
-            type="password"
-            placeholder="Password"
-            required
-          />
-          <button
-            id="button_h"
-            type="submit"
-            className="form__button button submit bg-blue-500 text-white py-2 px-4 rounded-md"
-          >
-            LOGIN
-          </button>
-          <span className="text-gray-600">
-            Don't have an account?{" "}
-            <Link className="thicklink text-blue-500" to="/signup">
-              Sign Up
-            </Link>
-          </span>
-          <span className="text-gray-600">
-            {" "}
-            <Link className="thicklink text-blue-500" to="/send-mail">
-              Forgot Password
-            </Link>
-          </span>
-        </form>
       </div>
+
+      <style>
+        {`
+          .input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            outline: none;
+          }
+          .input:focus {
+            border-color: #6366f1;
+          }
+        `}
+      </style>
     </div>
   );
 };

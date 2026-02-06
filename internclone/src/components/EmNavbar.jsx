@@ -1,86 +1,149 @@
-import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useDispatch, useSelector } from 'react-redux';
-import { asyncsignout } from '../store/userActions';  // Update the path based on your project structure
+import React, { useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { asyncsignout } from "../store/userActions";
 
 const Navbar = () => {
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
+  const { isAuthenticated, user } = useSelector((state) => state.user);
+
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const handleSignOut = () => {
-    // Dispatch the asyncsignout action when the "Sign Out" button is clicked
     dispatch(asyncsignout());
-  };
-  const handleMouseEnter = () => {
-    setIsMenuOpen(true);
-  };
-
-  const handleMouseLeave = () => {
     setIsMenuOpen(false);
   };
 
+  // close menu on outside click
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setIsMenuOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () =>
+      document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
-    <div className='nav h-20 w-full bg-zinc-100 flex items-center justify-between px-5 border-b-2 z-10'>
-      <Link to="/employe/dashboard">
-        <img className='w-40' src="https://upload.wikimedia.org/wikipedia/en/8/8b/Internshala_company_logo.png" alt="" />
+    <header className="h-20 w-full bg-zinc-100 border-b flex items-center px-6 justify-between sticky top-0 z-50">
+      
+      {/* LOGO */}
+      <Link to="/employe/dashboard" className="text-2xl font-bold text-indigo-600">
+        Career<span className="text-gray-900">Hub</span>
       </Link>
-      <div className="prt2 flex gap-4 items-center">
-        {user.isAuthenticated ? (
-          <>
-            <h4 className='font-semibold'>Internships🚀</h4>
-            <h4 className='font-semibold'>Jobs💻</h4>
-            {user.user && (  // Add a conditional check for user.user
-              <>
-                <div
-                  className="h-10 w-10 overflow-hidden bg-zinc-300 rounded-full flex items-center justify-center"
-                  onMouseEnter={handleMouseEnter}
-                  onMouseLeave={handleMouseLeave}
-                >
-                  <img className='h-full w-full object-cover' src={user.user.organizationLogo.url} alt="" />
-                </div>
-                {isMenuOpen && (
-                <div
-                className="menus flex flex-col gap-1 opacity-1 h-[86vh] w-[30vw] px-4 bg-zinc-100 absolute right-[0%] top-[11%] shadow-lg"
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-              >
-                 <div className='min-h-10 w-full border-b bottom-5 border-red pb-4 mb-5'>
-                   <h1 className='mt-10 text-2xl'>{user.user.firstname} {user.user.lastname}</h1>
-                   <h6>{user.user.email}</h6>
-                 </div>
-                 <Link to='/update-employe' className='text-sky-500 font-semibold pb-1'>Edit Profile</Link>
-                 <Link to='/employe-changepassword' className='text-sky-500 font-semibold pb-1'>Change Password</Link>
-               </div>
-                )
 
-                }
-                
-                <button
-                  className='border-sky-600 border px-6 py-1 text-white bg-[#00A5EC] font-semibold rounded-md'
-                  onClick={handleSignOut}
-                >
-                  Sign Out
-                </button>
-              </>
-            )}
+      {/* RIGHT */}
+      <div className="flex items-center gap-6">
+        {isAuthenticated && user ? (
+          <>
+            <span className="font-medium">Internships 🚀</span>
+            <span className="font-medium">Jobs 💻</span>
+
+            {/* PROFILE + MENU */}
+            <div className="relative flex items-center gap-2" ref={menuRef}>
+              
+              {/* AVATAR (NOT CLICKABLE) */}
+              <div className="h-10 w-10 rounded-full overflow-hidden border bg-zinc-200">
+                <img
+                  src={user.organizationLogo?.url}
+                  alt="logo"
+                  className="h-full w-full object-cover"
+                />
+              </div>
+
+              {/* MENU BUTTON */}
+              <button
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                className="p-2 rounded-md hover:bg-zinc-200 transition"
+              >
+                <i className="ri-menu-3-line text-xl"></i>
+              </button>
+
+              {/* DROPDOWN */}
+              {isMenuOpen && (
+                <div className="absolute right-0 top-12 w-64 bg-white shadow-xl rounded-xl p-4 border animate-fadeIn">
+                  
+                  <div className="border-b pb-3 mb-3">
+                    <h3 className="font-semibold">
+                      {user.firstname} {user.lastname}
+                    </h3>
+                    <p className="text-sm text-gray-500">
+                      {user.email}
+                    </p>
+                  </div>
+
+                  <Link
+                    to="/update-employe"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block py-2 text-sky-600 font-medium"
+                  >
+                    Edit Profile
+                  </Link>
+
+                  <Link
+                    to="/employe-changepassword"
+                    onClick={() => setIsMenuOpen(false)}
+                    className="block py-2 text-sky-600 font-medium"
+                  >
+                    Change Password
+                  </Link>
+
+                  <button
+                    onClick={handleSignOut}
+                    className="mt-3 w-full bg-sky-500 text-white py-2 rounded-lg font-semibold hover:bg-sky-600"
+                  >
+                    Sign Out
+                  </button>
+                </div>
+              )}
+            </div>
           </>
         ) : (
           <>
-            <Link className='border-sky-600 border px-6 py-1 text-[#00A5EC] font-semibold rounded-md' to="/signin">
+            <Link
+              to="/signin"
+              className="border border-sky-500 px-4 py-1 rounded-md text-sky-500 font-semibold"
+            >
               Login
             </Link>
-            <Link className='border-sky-600 border px-6 py-1 text-white bg-[#00A5EC] font-semibold rounded-md' to="/signup">
+            <Link
+              to="/signup"
+              className="bg-sky-500 text-white px-4 py-1 rounded-md font-semibold"
+            >
               Candidate Sign-up
             </Link>
-            <Link className='border-sky-600 border px-6 py-1 text-white bg-[#00A5EC] font-semibold rounded-md' to='/employe/signup'>
+            <Link
+              to="/employe/signup"
+              className="bg-sky-500 text-white px-4 py-1 rounded-md font-semibold"
+            >
               Hire Talent
             </Link>
           </>
         )}
       </div>
-    </div>
+
+      {/* SIMPLE ANIMATION */}
+      <style>
+        {`
+          .animate-fadeIn {
+            animation: fadeIn 0.15s ease-out;
+          }
+          @keyframes fadeIn {
+            from {
+              opacity: 0;
+              transform: translateY(-6px);
+            }
+            to {
+              opacity: 1;
+              transform: translateY(0);
+            }
+          }
+        `}
+      </style>
+    </header>
   );
 };
 

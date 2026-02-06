@@ -1,99 +1,132 @@
-import React, { useEffect, useState } from 'react';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { useDispatch, useSelector } from 'react-redux';
-import { useParams } from 'react-router-dom';
-import { applyForJob, fetchJobDetailsStu, asyncloaduser, saveJobInternship } from '../../store/userActions'; // Import the action for saving job or internship
-import Navbar from '../Navbar';
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  fetchJobDetails,
+  applyForJob,
+  saveJobInternship,
+} from "../../store/userActions";
+import Navbar from "../Navbar";
+import { toast } from "react-toastify";
 
 const JobDetailsPage = () => {
   const { jobId } = useParams();
+  const navigate = useNavigate();
   const dispatch = useDispatch();
-  const [isAlreadyApplied, setIsAlreadyApplied] = useState(false);
-  const [isSaved, setIsSaved] = useState(false); // State variable to track if the job is saved by the student
 
+  const { jobDetails, isAuthenticated, user } = useSelector(
+    (state) => state.user
+  );
+
+  const [loading, setLoading] = useState(true);
+  const [isSaved, setIsSaved] = useState(false);
+
+  const job = jobDetails?.[jobId]?.job;
+
+  // 🔹 FETCH JOB
   useEffect(() => {
-    dispatch(asyncloaduser());
-  }, [dispatch]);
+    const loadJob = async () => {
+      try {
+        await dispatch(fetchJobDetails(jobId));
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadJob();
+  }, [dispatch, jobId]);
 
-  const job = useSelector(state => state.user.jobDetails[jobId]);
-  const user = useSelector(state => state.user);
-
-  useEffect(() => {
-    if (jobId && !job) {
-      dispatch(fetchJobDetailsStu(jobId));
+  // 🔹 APPLY JOB
+  const handleApply = async () => {
+    if (!isAuthenticated) {
+      navigate("/signin");
+      return;
     }
-  }, [dispatch, jobId, job]);
 
-  useEffect(() => {
-    // Check if the job and user data is available and then update isAlreadyApplied state accordingly
-    if (job && job.data && user.isAuthenticated && user.user) {
-      const appliedStudents = job.data.students;
-      const isAlreadyApplied = appliedStudents.includes(user.user._id);
-      setIsAlreadyApplied(isAlreadyApplied);
+    try {
+      await dispatch(applyForJob(jobId));
+      toast.success("Applied successfully");
+    } catch (err) {
+      toast.error("Failed to apply");
     }
-  }, [job, user]);
+  };
 
-  useEffect(() => {
-    // Check if the job ID is included in the savedJobs array of the user
-    if (user.isAuthenticated && user.user && user.user.savedJobs.includes(jobId)) {
+  // 🔹 SAVE JOB
+  const handleSave = async () => {
+    if (!isAuthenticated) {
+      navigate("/signin");
+      return;
+    }
+
+    try {
+      await dispatch(
+        saveJobInternship(user._id, jobId, "job")
+      );
       setIsSaved(true);
-    } else {
-      setIsSaved(false);
+      toast.success("Job saved");
+    } catch (err) {
+      toast.error("Failed to save job");
     }
-  }, [user, jobId]);
-
-  const handleApply = () => {
-    dispatch(applyForJob(jobId)).then(() => {
-      setIsAlreadyApplied(true);
-      toast.success('Applied Successfully');
-    });
   };
 
-  const handleSave = () => {
-    // Dispatch action to save the job
-    dispatch(saveJobInternship(user.user._id, jobId, 'job')).then(() => {
-      setIsSaved(true); // Update state to reflect that the job is saved
-      toast.success('Save Job Successfully');
-      
-    }).catch(() => {
-      setIsSaved(false); // Handle error in case save fails
-    });
-  };
-
-  if (!job) {
-    return <div>Loading...</div>;
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <div className="h-[70vh] flex items-center justify-center">
+          <h2 className="text-xl">Loading job details...</h2>
+        </div>
+      </>
+    );
   }
 
-  const { title, description, jobtype, salary, perks, openings, preferences, skills, responsibility, assesments } = job.data;
+  if (!job) {
+    return (
+      <>
+        <Navbar />
+        <div className="h-[70vh] flex items-center justify-center">
+          <h2 className="text-xl text-red-500">
+            Job not found
+          </h2>
+        </div>
+      </>
+    );
+  }
 
   return (
-    <div className="min-h-screen w-full pb-[20vh]">
+    <div className="min-h-screen bg-gray-50">
       <Navbar />
-      <h2 className="text-3xl p-8 font-semibold text-center">{title} ({jobtype})</h2>
-      <div className="min-h-screen w-[85%] m-auto border-2 px-5 py-10">
-        <h2 className="font-semibold">{title}</h2>
-        <p className="mt-2">Job-Type {jobtype}</p>
-        <p className="mt-1"><span className="font-semibold">Salary:</span> {salary}/month</p>
-        <p className="mt-1"><span className="font-semibold">Perks:</span> {perks}</p>
-        <p className="mt-1"><span className="font-semibold">Skills:</span> <span className="text-sky-500">{skills}</span></p>
-        <p className="mt-1"><span className="text-sky-500 font-semibold">Openings:</span> {openings}</p>
-        <p className="mt-5"><span className="font-semibold">Preferences:</span> {preferences}</p>
-        <p className="mt-5"><span className="font-semibold">Responsibility:</span> {responsibility}</p>
-        <p className="mt-5"><span className="font-semibold">Description:</span> {description}</p>
-        <p className="mt-5"><span className="font-semibold">Assesments:</span> {assesments}</p>
-        {!isAlreadyApplied && user.isAuthenticated && (
-          <button onClick={handleApply} className="px-10 py-2 bg-sky-500 text-xl text-white rounded-md ml-[42%] mt-10">Apply Now</button>
-        )}
-        {isAlreadyApplied && user.isAuthenticated && (
-          <p className="mt-5 text-red-500 font-semibold">Already Applied</p>
-        )}
-        {!isSaved && user.isAuthenticated && (
-          <button onClick={handleSave} className="px-10 py-2 bg-blue-500 text-xl text-white rounded-md ml-[42%] mt-5">Save Job</button>
-        )}
-        {isSaved && user.isAuthenticated && (
-          <p className="mt-5 text-green-500 font-semibold">Job Saved</p>
-        )}
+
+      <div className="max-w-4xl mx-auto p-6 mt-8 bg-white rounded-lg shadow">
+        <h1 className="text-3xl font-bold">{job.title}</h1>
+        <p className="text-gray-600 mt-2">{job.location}</p>
+
+        <div className="mt-6 space-y-2">
+          <p><strong>Skills:</strong> {job.skills}</p>
+          <p><strong>Type:</strong> {job.jobtype}</p>
+          <p><strong>Openings:</strong> {job.openings}</p>
+          <p><strong>Salary:</strong> ₹{job.salary}</p>
+        </div>
+
+        <div className="mt-6">
+          <h3 className="font-semibold text-lg">Description</h3>
+          <p className="text-gray-700 mt-2">{job.description}</p>
+        </div>
+
+        <div className="flex gap-4 mt-8">
+          <button
+            onClick={handleApply}
+            className="bg-indigo-600 text-white px-6 py-2 rounded"
+          >
+            Apply Now
+          </button>
+
+          <button
+            onClick={handleSave}
+            className="border px-6 py-2 rounded"
+          >
+            {isSaved ? "Saved" : "Save Job"}
+          </button>
+        </div>
       </div>
     </div>
   );

@@ -1,213 +1,212 @@
-import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import { useDispatch, useSelector } from 'react-redux';
-import { asyncloaduser, updateUserDetails, uploadAvatar } from '../store/userActions';
+import React, { useEffect, useState } from "react";
+import { toast } from "react-toastify";
+import { useDispatch, useSelector } from "react-redux";
+import {
+  asyncloaduser,
+  updateUserDetails,
+  uploadAvatar,
+} from "../store/userActions";
 
 const UpdateForm = ({ onClose }) => {
-  const [isSubmitting, setSubmitting] = useState(false);
   const dispatch = useDispatch();
-  const user = useSelector((state) => state.user);
+  const { user, isLoading } = useSelector((state) => state.user);
 
   useEffect(() => {
-    // Fetch user details when the component mounts
     dispatch(asyncloaduser());
   }, [dispatch]);
 
-  // State for form fields
+  /* SAFELY INITIALIZE FORM */
   const [formData, setFormData] = useState({
-    firstname: user.user.firstname,
-    lastname: user.user.lastname,
-    email: user.user.email,
-    contact: user.user.contact,
-    city: user.user.city,
-    gender: user.user.gender,
+    firstname: "",
+    lastname: "",
+    email: "",
+    contact: "",
+    city: "",
+    gender: "",
   });
 
-  // State for avatar file and preview
-  const [avatarFormData, setAvatarFormData] = useState({
-    avatar: null,
-    preview: user.user.avatar.url, // Default to the current avatar URL
-  });
+  const [avatar, setAvatar] = useState(null);
+  const [preview, setPreview] = useState("");
 
-  // Handle form field changes
-  const handleInputChange = (e, fieldName) => {
-    setFormData({ ...formData, [fieldName]: e.target.value });
+  /* LOAD USER DATA */
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        firstname: user.firstname || "",
+        lastname: user.lastname || "",
+        email: user.email || "",
+        contact: user.contact || "",
+        city: user.city || "",
+        gender: user.gender || "",
+      });
+      setPreview(user.avatar?.url || "");
+    }
+  }, [user]);
+
+  const handleChange = (e) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  // Handle avatar file change
   const handleAvatarChange = (e) => {
-    const selectedFile = e.target.files[0];
+    const file = e.target.files[0];
+    if (!file) return;
 
-    setAvatarFormData({
-      avatar: selectedFile,
-      preview: URL.createObjectURL(selectedFile), // Create a preview URL
-    });
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please select an image file");
+      return;
+    }
+
+    setAvatar(file);
+    setPreview(URL.createObjectURL(file));
   };
 
-  // Handle form submission for details update
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    dispatch(updateUserDetails(user.user._id, formData));
-    onClose(); // Close the form
-    toast.success('Student Updated');
-    // toast.error("Error to Update")
+  /* UPDATE PROFILE */
+  const handleProfileUpdate = async () => {
+    try {
+      await dispatch(updateUserDetails(user._id, formData));
+      toast.success("Profile updated successfully");
+      onClose();
+    } catch {
+      toast.error("Failed to update profile");
+    }
   };
 
-  // Handle form submission for avatar upload
-  const handleAvatarSubmit = async (e) => {
-    e.preventDefault();
-    const formData = new FormData();
-    formData.append('avatar', avatarFormData.avatar);
-    dispatch(uploadAvatar(user.user._id, formData));
-    onClose(); // Close the form
+  /* UPLOAD AVATAR */
+  const handleAvatarUpload = async () => {
+    if (!avatar) {
+      toast.error("Please select an avatar");
+      return;
+    }
+
+    const data = new FormData();
+    data.append("avatar", avatar);
+
+    try {
+      await dispatch(uploadAvatar(user._id, data));
+      toast.success("Avatar updated successfully");
+      onClose();
+    } catch {
+      toast.error("Failed to upload avatar");
+    }
   };
 
   return (
-    <form className="max-w-lg mx-auto mt-5 p-6 bg-white rounded-md shadow-md relative">
-      <button
-          type="button"
-          className="ml-2 absolute right-5 top-5 bg-gray-400 text-white py-2 px-4 rounded-md hover:bg-gray-500 focus:outline-none focus:ring focus:border-gray-300"
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+      <div className="bg-white w-full max-w-xl rounded-2xl shadow-lg p-6 relative">
+
+        {/* CLOSE */}
+        <button
           onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-800"
         >
-          Close Form
+          ✕
         </button>
-      <h2 className="text-2xl font-semibold mb-5">Update Profile</h2>
-      
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="firstname" className="block text-sm font-medium text-gray-700">
-            First Name
+
+        <h2 className="text-2xl font-semibold mb-6">
+          Update Profile
+        </h2>
+
+        {/* AVATAR */}
+        <div className="flex items-center gap-4 mb-6">
+          <img
+            src={preview || "/avatar.png"}
+            alt="avatar"
+            className="h-24 w-24 rounded-full object-cover border"
+          />
+          <label className="cursor-pointer text-indigo-600 font-medium">
+            Change Avatar
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarChange}
+              className="hidden"
+            />
           </label>
+        </div>
+
+        {/* FORM */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <input
-            type="text"
-            id="firstname"
             name="firstname"
             value={formData.firstname}
-            onChange={(e) => handleInputChange(e, 'firstname')}
-            className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+            onChange={handleChange}
+            placeholder="First Name"
+            className="input"
           />
-        </div>
-        <div>
-          <label htmlFor="lastname" className="block text-sm font-medium text-gray-700">
-            Last Name
-          </label>
           <input
-            type="text"
-            id="lastname"
             name="lastname"
             value={formData.lastname}
-            onChange={(e) => handleInputChange(e, 'lastname')}
-            className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+            onChange={handleChange}
+            placeholder="Last Name"
+            className="input"
           />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-            Email
-          </label>
           <input
-            type="email"
-            id="email"
             name="email"
             value={formData.email}
-            onChange={(e) => handleInputChange(e, 'email')}
-            className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+            onChange={handleChange}
+            placeholder="Email"
+            className="input"
           />
-        </div>
-        <div>
-          <label htmlFor="contact" className="block text-sm font-medium text-gray-700">
-            Contact
-          </label>
           <input
-            type="text"
-            id="contact"
             name="contact"
             value={formData.contact}
-            onChange={(e) => handleInputChange(e, 'contact')}
-            className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+            onChange={handleChange}
+            placeholder="Contact"
+            className="input"
           />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-4 mt-4">
-        <div>
-          <label htmlFor="city" className="block text-sm font-medium text-gray-700">
-            City
-          </label>
           <input
-            type="text"
-            id="city"
             name="city"
             value={formData.city}
-            onChange={(e) => handleInputChange(e, 'city')}
-            className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+            onChange={handleChange}
+            placeholder="City"
+            className="input"
           />
-        </div>
-        <div>
-          <label htmlFor="gender" className="block text-sm font-medium text-gray-700">
-            Gender
-          </label>
           <select
-            id="gender"
             name="gender"
             value={formData.gender}
-            onChange={(e) => handleInputChange(e, 'gender')}
-            className="mt-1 p-2 w-full border border-gray-300 rounded-md"
+            onChange={handleChange}
+            className="input"
           >
+            <option value="">Select Gender</option>
             <option value="male">Male</option>
             <option value="female">Female</option>
           </select>
         </div>
+
+        {/* ACTIONS */}
+        <div className="flex justify-end gap-3 mt-6">
+          <button
+            onClick={handleAvatarUpload}
+            className="px-4 py-2 border border-indigo-600 text-indigo-600 rounded-lg hover:bg-indigo-50"
+          >
+            Upload Avatar
+          </button>
+
+          <button
+            onClick={handleProfileUpdate}
+            disabled={isLoading}
+            className="px-6 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+          >
+            {isLoading ? "Updating..." : "Save Changes"}
+          </button>
+        </div>
       </div>
 
-      <div className="mt-4  flex items-center">
-        <label htmlFor="avatar" className="block text-sm font-medium text-gray-700">
-          Avatar
-        </label>
-        <input
-          type="file"
-          id="avatar"
-          name="avatar"
-          accept="image/*"
-          onChange={handleAvatarChange}
-          className="mt-1 p-2 w-1/2 border border-gray-300 rounded-md"
-        />
-        {avatarFormData.preview && (
-            <img
-              src={avatarFormData.preview}
-              alt="Avatar Preview"
-              className="mt-2 rounded-md h-[19vh]"
-            />
-          )}
-      </div>
-
-      <div className="mt-6">
-        <button
-          type="submit"
-          className="bg-blue-500 text-white py-2 px-4 rounded-md hover:bg-blue-600 focus:outline-none focus:ring focus:border-blue-300"
-          onClick={handleSubmit}
-        >
-          Update Profile
-        </button>
-        <button
-          type="submit"
-          className="ml-2 bg-green-500 text-white py-2 px-4 rounded-md hover:bg-green-600 focus:outline-none focus:ring focus:border-green-300"
-          onClick={handleAvatarSubmit}
-        >
-          Upload Avatar
-        </button>
-        {/* <button
-          type="button"
-          className="ml-2 bg-gray-400 text-white py-2 px-4 rounded-md hover:bg-gray-500 focus:outline-none focus:ring focus:border-gray-300"
-          onClick={onClose}
-        >
-          Close Form
-        </button> */}
-      </div>
-    </form>
+      {/* INPUT STYLES */}
+      <style>
+        {`
+          .input {
+            padding: 10px;
+            border: 1px solid #d1d5db;
+            border-radius: 8px;
+            outline: none;
+          }
+          .input:focus {
+            border-color: #6366f1;
+          }
+        `}
+      </style>
+    </div>
   );
 };
 
